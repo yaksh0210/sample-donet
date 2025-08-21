@@ -1,64 +1,40 @@
 name: Dependabot Alert Workflow
 on:
-  workflow_dispatch:
-    
   push:
     branches:
-    - master
+      - master  
     paths:
-    - '**/*.csproj'
-    - '**/*.sln'
+      - '**/*.csproj'  # This ensures it only runs if any .csproj file is modified
+      - '**/*.sln'     # Or any .sln solution file
   pull_request:
     branches:
-    - master
+      - master  # You can also trigger on pull requests to the main branch
 
 jobs:
   dependency-check:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the repository code
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      # Step 1: Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    # Step 2: Set up .NET environment
-    - name: Set up .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '6.0'
+      # Step 2: Set up .NET environment
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0'  # Adjust the .NET version to your project requirements
 
-    # Step 3: Find the .csproj or .sln file dynamically
-    - name: Find solution or project file
-      id: find_file
-      run: |
-        # Find the first .sln file or .csproj file in the repository
-        SLN_FILE=$(find . -name '*.sln' | head -n 1)
-        if [ -z "$SLN_FILE" ]; then
-          # If no solution file, fall back to finding a .csproj file
-          CSProj_FILE=$(find . -name '*.csproj' | head -n 1)
-          if [ -z "$CSProj_FILE" ]; then
-            echo "No .sln or .csproj file found!"
-            exit 1
+      # Step 3: Restore NuGet packages
+      - name: Restore NuGet packages
+        run: dotnet restore
+
+      # Step 4: Run a dependency audit (checks for vulnerabilities)
+      - name: Run dotnet audit
+        run: |
+          dotnet list package --outdated > outdated-packages.txt
+          if [ -s outdated-packages.txt ]; then
+            echo "Outdated or vulnerable packages found!"
           else
-            echo "Using .csproj file: $CSProj_FILE"
-            echo "::set-output name=project_file::$CSProj_FILE"
+            echo "No outdated packages found."
           fi
-        else
-          echo "Using .sln file: $SLN_FILE"
-          echo "::set-output name=project_file::$SLN_FILE"
-        fi
-
-    # Step 4: Restore NuGet packages with NuGet.config
-    - name: Restore NuGet packages
-      run: |
-        dotnet restore ${{ steps.find_file.outputs.project_file }} --configfile NuGet.config
-
-    # Step 5: Run a dependency audit
-    - name: Run dotnet audit
-      run: |
-        dotnet list ${{ steps.find_file.outputs.project_file }} package --outdated > outdated-packages.txt
-        if [ -s outdated-packages.txt ]; then
-          echo "Outdated or vulnerable packages found!"
-        else
-          echo "No outdated packages found."
-        fi
