@@ -1,5 +1,4 @@
 name: Dependabot Alert Workflow
-
 on:
   workflow_dispatch:
     
