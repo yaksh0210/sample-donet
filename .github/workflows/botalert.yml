@@ -1,0 +1,40 @@
+name: Dependabot Alert Workflow
+on:
+  push:
+    branches:
+      - master  
+    paths:
+      - '**/*.csproj'  # This ensures it only runs if any .csproj file is modified
+      - '**/*.sln'     # Or any .sln solution file
+  pull_request:
+    branches:
+      - master  # You can also trigger on pull requests to the main branch
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up .NET environment
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'  # Adjust the .NET version to your project requirements
+
+      # Step 3: Restore NuGet packages
+      - name: Restore NuGet packages
+        run: dotnet restore
+
+      # Step 4: Run a dependency audit (checks for vulnerabilities)
+      - name: Run dotnet audit
+        run: |
+          dotnet list package --outdated > outdated-packages.txt
+          if [ -s outdated-packages.txt ]; then
+            echo "Outdated or vulnerable packages found!"
+          else
+            echo "No outdated packages found."
+          fi
