@@ -23,18 +23,18 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '6.0'  # Adjust the .NET version to your project requirements
+          dotnet-version: '8.0'  # Adjust the .NET version to your project requirements
 
       # Step 3: Restore NuGet packages
       - name: Restore NuGet packages
         run: dotnet restore
 
-      # Step 4: Run a dependency audit (checks for vulnerabilities)
-      - name: Run dotnet audit
+      - name: Run dotnet outdated package check
         run: |
-          dotnet list package --outdated > outdated-packages.txt
+          dotnet list ${{ steps.find_file.outputs.project_file }} package --outdated > outdated-packages.txt
           if [ -s outdated-packages.txt ]; then
             echo "Outdated or vulnerable packages found!"
+            cat outdated-packages.txt
           else
             echo "No outdated packages found."
           fi
